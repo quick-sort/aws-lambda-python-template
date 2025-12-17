@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: An AWS Lambda application that calls the Lambda API.
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: python3.12
+    Tracing: Active
+    Architectures:
+        - ${ARCH}
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: aws-lambda-python-template
+
+Resources:
+  MyLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: aws_lambda.handler
+      CodeUri: src/
+      Description: Call the AWS Lambda API
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSLambda_ReadOnlyAccess
+        - AWSXRayDaemonWriteAccess
+      Layers:
+        - !Ref LibLayer
+        - !Ref VenvLayer
+
+  LibLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: python-app-lib
+      Description: Libraries for the template app
+      ContentUri: build/lambda-lib.zip
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Delete
+
+  VenvLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: python-app-venv
+      Description: Dependencies for the template app
+      ContentUri: build/lambda-venv-${ARCH}.zip
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Delete
+
+Outputs:
+  MyLambdaFunction:
+    Description: Lambda Function ARN
+    Value: !GetAtt MyLambda.Arn
+  MyLambdaFunctionIamRole:
+    Description: Implicit IAM Role created for Lambda function
+    Value: !GetAtt MyLambdaRole.Arn
